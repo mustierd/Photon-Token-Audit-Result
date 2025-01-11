@@ -30,7 +30,7 @@ export async function getTokenInfo(
       isToken2022: programId.equals(TOKEN_2022_PROGRAM_ID),
     }
   } catch (error) {
-    console.error('Token bilgileri alınırken hata:', error)
+    console.error('Error reading token information:', error)
     throw error
   }
 }

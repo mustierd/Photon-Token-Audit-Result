@@ -44,7 +44,7 @@ export async function getTopHolders(
             decimals: 9,
           }
         } catch (error) {
-          console.error('Hesap okuma hatası:', error)
+          console.error('Account reading error:', error)
           return null
         }
       })
@@ -106,7 +106,7 @@ export async function getTopHolders(
       isToken2022: programId.equals(TOKEN_2022_PROGRAM_ID),
     }
   } catch (error) {
-    console.error('Top holders analizi hatası:', error)
+    console.error('Top holders analysis error:', error)
     throw error
   }
 }
