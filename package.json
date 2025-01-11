@@ -1,0 +1,22 @@
+{
+  "name": "solana-token-audit",
+  "version": "1.0.0",
+  "description": "Solana token audit tool for checking token security features",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.3.9",
+    "@solana/web3.js": "^1.87.6",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.6",
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.1"
+  }
+}
