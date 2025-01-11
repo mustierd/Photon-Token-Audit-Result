@@ -46,10 +46,6 @@ src/
     └── topHolders.ts     # Top holders analysis service
 ```
 
-## 🔍 License
-
-This project is licensed under the MIT License.
-
 ## 📞 Contact
 
 X: [@mustierd](https://x.com/mustierd)
