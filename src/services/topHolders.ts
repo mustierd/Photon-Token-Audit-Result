@@ -1,26 +1,79 @@
 import { Connection, PublicKey } from '@solana/web3.js'
 import { getDexScreenerPrice } from './getTokenPrice'
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 
 import {
-  TOKEN_PROGRAM_ID,
-  TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID as SPL_TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID as SPL_TOKEN_2022_PROGRAM_ID,
   unpackAccount,
   getMint,
 } from '@solana/spl-token'
+import { getBondingCurvePDA } from '../utils'
+import { findRaydiumPoolInfo } from './getPoolAddress'
+
+interface TokenHolder {
+  address: string
+  amount: number
+  decimals: number
+  totalSupply: number
+  percentOwned: string
+  percentOwnedNumber: number
+  formattedAmount: string
+  value: string
+  label: string
+}
+
+const RAYDIUM_POOL_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1'
+const PUMPFUN_PROGRAM_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P'
+const TOKEN_MINT_SOL = new PublicKey(
+  'So11111111111111111111111111111111111111112'
+) // Wrapped SOL (WSOL) Mint Address
+const RISK_THRESHOLD = 15 // Top holders risk threshold percentage
 
 export async function getTopHolders(
   connection: Connection,
   mintAddress: string,
-  limit: number = 10
+  limit: number = 11
 ) {
   try {
     const mintPubkey = new PublicKey(mintAddress)
     const mintInfo = await connection.getAccountInfo(mintPubkey)
     const tokenPrice = await getDexScreenerPrice(mintAddress)
-
     if (!mintInfo) throw new Error('Token information not found')
-
     const programId = mintInfo.owner
+
+    const KNOWN_POOL_ADDRESSES = [RAYDIUM_POOL_ADDRESS]
+
+    const bindingCurveAddress = await getBondingCurvePDA(
+      mintAddress,
+      PUMPFUN_PROGRAM_ID
+    )
+
+    const poolAddresses = [...KNOWN_POOL_ADDRESSES]
+
+    if (bindingCurveAddress) {
+      poolAddresses.push(bindingCurveAddress.toBase58())
+    }
+
+    const raydiumPoolInfo = await findRaydiumPoolInfo(
+      connection,
+      mintAddress,
+      TOKEN_MINT_SOL.toBase58()
+    )
+
+    if (raydiumPoolInfo?.id) {
+      const foundPoolId = raydiumPoolInfo.id.toBase58()
+      if (!poolAddresses.includes(foundPoolId)) {
+        poolAddresses.push(foundPoolId)
+      }
+    }
+
+    if (raydiumPoolInfo?.authority) {
+      const poolAuthority = raydiumPoolInfo.authority.toBase58()
+      if (!poolAddresses.includes(poolAuthority)) {
+        poolAddresses.push(poolAuthority)
+      }
+    }
 
     const mint = await getMint(connection, mintPubkey, 'confirmed', programId)
     const totalSupply = Number(mint.supply)
@@ -73,40 +126,68 @@ export async function getTopHolders(
     }
 
     const validHolders = holders.filter(
-      (holder): holder is NonNullable<typeof holder> => holder !== null
+      (holder): holder is NonNullable<typeof holder> => {
+        if (!holder) return false
+        return !poolAddresses.includes(holder.address)
+      }
     )
 
-    const sortedHolders = validHolders
+    const sortedHolders = holders
+      .filter((holder): holder is NonNullable<typeof holder> => holder !== null)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, limit)
       .map((holder) => {
-        const percentOwned = ((holder.amount / totalSupply) * 100).toFixed(2)
-        const formattedAmount = (
-          holder.amount / Math.pow(10, holder.decimals)
-        ).toFixed(2)
+        const exactPercentage = (holder.amount / totalSupply) * 100
+        const displayPercentage = Number(exactPercentage.toFixed(2))
 
-        const amountWithDecimals = holder.amount / Math.pow(10, holder.decimals)
-        const value = (tokenPrice.price * amountWithDecimals).toFixed(2)
+        let label = ''
+        if (poolAddresses.includes(holder.address)) {
+          if (holder.address === RAYDIUM_POOL_ADDRESS) {
+            label = ' 🌊 [Raydium Pool]'
+          } else {
+            label = ' 🌊 [Liquidity Pool]'
+          }
+        } else if (holder.address.startsWith('D4R')) {
+          label = ' ⚠️ [Excluded Address]'
+        }
 
         return {
-          ...holder,
-          percentOwned: `${percentOwned}%`,
-          formattedAmount: `${formattedAmount}`,
-          value: `$${value}`,
-        }
+          address: holder.address,
+          amount: holder.amount,
+          decimals: holder.decimals,
+          totalSupply,
+          percentOwned: `${displayPercentage}%`,
+          percentOwnedNumber: exactPercentage,
+          formattedAmount: (
+            holder.amount / Math.pow(10, holder.decimals)
+          ).toFixed(2),
+          value: `$${(
+            tokenPrice.price *
+            (holder.amount / Math.pow(10, holder.decimals))
+          ).toFixed(2)}`,
+          label,
+        } as TokenHolder
       })
 
-    const activeAddresses = validHolders
-      .filter((holder) => holder.amount > 0)
-      .map((holder) => holder.address)
+    const totalPercentageHeld = validHolders
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 10)
+      .reduce((total, holder) => {
+        const percentage = (holder.amount / totalSupply) * 100
+        return total + percentage
+      }, 0)
+
+    const isTop10HolderSafe = totalPercentageHeld < RISK_THRESHOLD
 
     return {
       sortedHolders,
-      activeAddresses,
-      isToken2022: programId.equals(TOKEN_2022_PROGRAM_ID),
+      activeAddresses: validHolders,
+      totalPercentageHeld,
+      isTop10HolderSafe,
+      riskThreshold: RISK_THRESHOLD,
     }
   } catch (error) {
-    console.error('Top holders analysis error:', error)
+    console.error('Error in getTopHolders:', error)
     throw error
   }
 }

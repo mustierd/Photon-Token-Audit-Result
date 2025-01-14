@@ -40,7 +40,6 @@ export async function getDexScreenerPrice(
       liquidity: Number(bestPair.liquidity?.usd || 0),
     }
   } catch (error) {
-    console.error('DexScreener price error:', error)
     return {
       price: 0,
       priceChange24h: 0,
