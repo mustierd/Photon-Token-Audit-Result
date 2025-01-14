@@ -34,14 +34,12 @@ npm start
 
 ```
 src/
-├── index.ts              # Main entry point
-├── types/               # Type definitions
-│   └── index.ts        # Centralized type definitions
+├── index.ts            # Main entry point
+├── types/              # Type definitions
+│   └── index.ts            # Centralized type definitions
 ├── utils/              # Utility functions
-│   └── index.ts        # Common utilities
+│   └── index.ts            # Common utilities
 └── services/           # Core services
-    ├── getPoolAddress.ts  # Pool address detection
-    ├── getTokenPrice.ts   # Token price service
     ├── lpBurnCheck.ts     # LP token burn verification
     ├── tokenAuth.ts       # Token authority check
     ├── tokenInfo.ts       # Token information
