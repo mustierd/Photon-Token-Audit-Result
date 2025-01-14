@@ -15,7 +15,7 @@ async function main() {
     bioJ9JTqW62MLz7UKHU69gtKhPpGi1BQhccj2kmSvUJ -> Token-2022 OwnerProgram Example
     Qma6aqrGVpi1QQKyiBQgLa1rBDDKonpAk258LN9pump -> spl-token OwnerProgram Example
   */
-  const tokenMintAddress = '543LdYxPd3vFAnUcSvXhP5BYpauuUK5yMvPDaai4pump'
+  const tokenMintAddress = 'bioJ9JTqW62MLz7UKHU69gtKhPpGi1BQhccj2kmSvUJ'
 
   try {
     const tokenInfo = await getTokenInfo(connection, tokenMintAddress)
