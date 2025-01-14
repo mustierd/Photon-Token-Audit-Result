@@ -1,5 +1,4 @@
 import { Connection, PublicKey } from '@solana/web3.js'
-import { getDexScreenerPrice } from './getTokenPrice'
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token'
 
 import {
@@ -8,8 +7,11 @@ import {
   unpackAccount,
   getMint,
 } from '@solana/spl-token'
-import { getBondingCurvePDA } from '../utils'
-import { findRaydiumPoolInfo } from './getPoolAddress'
+import {
+  findRaydiumPoolInfo,
+  getBondingCurvePDA,
+  getDexScreenerPrice,
+} from '../utils'
 
 interface TokenHolder {
   address: string
@@ -23,7 +25,7 @@ interface TokenHolder {
   label: string
 }
 
-const RAYDIUM_POOL_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1'
+const RAYDIUM_AUTH_ADDRESS = '5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1'
 const PUMPFUN_PROGRAM_ID = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P'
 const TOKEN_MINT_SOL = new PublicKey(
   'So11111111111111111111111111111111111111112'
@@ -42,7 +44,7 @@ export async function getTopHolders(
     if (!mintInfo) throw new Error('Token information not found')
     const programId = mintInfo.owner
 
-    const KNOWN_POOL_ADDRESSES = [RAYDIUM_POOL_ADDRESS]
+    const KNOWN_POOL_ADDRESSES = [RAYDIUM_AUTH_ADDRESS]
 
     const bindingCurveAddress = await getBondingCurvePDA(
       mintAddress,
@@ -142,7 +144,7 @@ export async function getTopHolders(
 
         let label = ''
         if (poolAddresses.includes(holder.address)) {
-          if (holder.address === RAYDIUM_POOL_ADDRESS) {
+          if (holder.address === RAYDIUM_AUTH_ADDRESS) {
             label = ' 🌊 [Raydium Pool]'
           } else {
             label = ' 🌊 [Liquidity Pool]'
